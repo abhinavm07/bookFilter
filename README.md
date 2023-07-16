@@ -1,5 +1,5 @@
 # bookFilter
-
+Install All dependencies before running the application
 
 # Scripts README
 
