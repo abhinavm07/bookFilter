@@ -5,9 +5,13 @@ const {
   deleteBook,
   allBooks,
   getBook,
-} = require("../controller/hotelController");
+} = require("../controller/bookController");
 
 const router = express.Router();
+
+const { protect } = require("../middleware/authMiddleware");
+
+// router.use(protect);
 
 router.post("/newbook", addBook);
 

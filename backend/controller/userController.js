@@ -1,64 +1,75 @@
 const userSchema = require("../model/userModel");
 
 const bcrypt = require("bcrypt");
+const { sign } = require("jsonwebtoken");
 
 const saltRounds = 10;
 
-const users = (req, res) => {
-  res.send("Hello There User!");
+const genrateToken = (id) => {
+  return sign({ id }, process.env.JWT_SECRET, {
+    expiresIn: "30d",
+  });
 };
 
 const createUsers = async (req, res) => {
-  const { name, email, password } = req.body;
+  try {
+    const { name, email, password } = req.body;
 
-  const userExists = userData(email);
-  if (userExists) {
-    return res.status(401).send("User Already Exists!");
-  }
+    const userExists = await userSchema.exists({ email });
 
-  const passwordHashed = await bcrypt.hash(password, saltRounds);
+    if (userExists) {
+      return res.status(401).json({ message: "User Already Exists" });
+    }
 
-  //   console.log(`Hashed Password : ${passwordHashed}`);
+    const passwordHashed = await bcrypt.hash(password, saltRounds);
 
-  if (name && email && passwordHashed) {
-    try {
-      userSchema.create({
-        name: name,
-        email: email,
+    if (name && email && passwordHashed) {
+      const user = await userSchema.create({
+        name,
+        email,
         password: passwordHashed,
       });
 
-      console.log(name, email, password);
-      return res.send("Success");
-    } catch (error) {
-      throw error;
+      return res.status(200).json({
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        token: genrateToken(user._id),
+      });
     }
+  } catch (error) {
+    throw error;
   }
 };
 
 const loginUsers = async (req, res) => {
-  const { email, password } = req.body;
-  if (email && password) {
-    const user = await userData(email);
-    if (user) {
-      const match = checkPassword(password, user.password);
-      console.log(match);
-      return match
-        ? res.send("Welcome User")
-        : res.status(401).send("Email or Password Mismatch!");
-    } else {
-      res.status(404).json({ msg: "No such Account Found" });
-    }
-  }
-};
+  try {
+    const { email, password } = req.body;
 
-const deleteUser = async () => {
-  const { email, password } = req.body;
-  const user = userData(email);
-  if (user) {
+    if (!email || !password) {
+      return res.status(400).json({ msg: "Email or Password missing" });
+    }
+
+    const user = await userData(email);
+
+    if (!user) {
+      return res.status(404).json({ msg: "No such Account Found" });
+    }
+
     const match = checkPassword(password, user.password);
-    console.log(match);
-    res.send("Hello!");
+
+    if (match) {
+      return res.status(200).json({
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        token: genrateToken(user._id),
+      });
+    } else {
+      return res.status(401).send("Email or Password Mismatch!");
+    }
+  } catch (error) {
+    throw error;
   }
 };
 
@@ -81,4 +92,4 @@ const checkPassword = (password, passwordHashed) => {
   }
 };
 
-module.exports = { users, createUsers, loginUsers, deleteUser };
+module.exports = { createUsers, loginUsers };

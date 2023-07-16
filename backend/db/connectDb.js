@@ -1,6 +1,5 @@
 const mongoose = require("mongoose");
 mongoose.set("strictQuery", true);
-
 //Database connection
 const db = (url) => {
   mongoose
@@ -13,7 +12,7 @@ const db = (url) => {
       throw err;
     });
 
-  mongoose.connection.on("disconnected", () => {
+  mongoose.connection.off("disconnected", () => {
     "Disconnected";
   });
 
